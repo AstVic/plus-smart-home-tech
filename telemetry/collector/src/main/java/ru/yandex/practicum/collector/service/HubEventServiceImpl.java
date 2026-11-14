@@ -8,7 +8,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.collector.config.KafkaProperties;
 import ru.yandex.practicum.collector.mapper.HubEventMapper;
-import ru.yandex.practicum.collector.model.hub.HubEvent;
+import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 
 @Slf4j
@@ -20,16 +20,16 @@ public class HubEventServiceImpl implements HubEventService {
     private final KafkaProperties kafkaProperties;
 
     @Override
-    public void collect(HubEvent event) {
+    public void collect(HubEventProto event) {
         HubEventAvro hubEventAvro = hubEventMapper.toAvro(event);
         ProducerRecord<String, SpecificRecordBase> record =
                 new ProducerRecord<>(
                         kafkaProperties.getTopics().get("hubs"),
                         null,
-                        event.getTimestamp().toEpochMilli(),
-                        event.getHubId(),
+                        hubEventAvro.getTimestamp().toEpochMilli(),
+                        hubEventAvro.getHubId(),
                         hubEventAvro);
         kafkaProducer.send(record);
-        log.info("Отправлено событие хаба в Kafka: {}", event);
+        log.info("Отправлено событие хаба в Kafka: {}", hubEventAvro);
     }
 }
