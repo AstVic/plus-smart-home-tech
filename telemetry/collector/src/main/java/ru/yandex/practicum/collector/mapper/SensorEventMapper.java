@@ -35,7 +35,7 @@ public class SensorEventMapper {
             case LIGHT_SENSOR_EVENT -> toAvro(event.getLightSensorEvent());
             case MOTION_SENSOR_EVENT -> toAvro(event.getMotionSensorEvent());
             case SWITCH_SENSOR_EVENT -> toAvro(event.getSwitchSensorEvent());
-            case TEMPERATURE_SENSOR_EVENT -> toAvro(event, event.getTemperatureSensorEvent());
+            case TEMPERATURE_SENSOR_EVENT -> toAvro(event.getTemperatureSensorEvent());
             default -> throw new IllegalArgumentException("Неизвестный тип события датчика: " + event.getPayloadCase());
         };
     }
@@ -69,11 +69,8 @@ public class SensorEventMapper {
                 .build();
     }
 
-    private TemperatureSensorAvro toAvro(SensorEventProto event, TemperatureSensorProto temperature) {
+    private TemperatureSensorAvro toAvro(TemperatureSensorProto temperature) {
         return TemperatureSensorAvro.newBuilder()
-                .setId(event.getId())
-                .setHubId(event.getHubId())
-                .setTimestamp(toInstant(event.getTimestamp()))
                 .setTemperatureC(temperature.getTemperatureC())
                 .setTemperatureF(temperature.getTemperatureF())
                 .build();
