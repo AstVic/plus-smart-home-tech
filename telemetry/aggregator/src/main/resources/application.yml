@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: aggregator
+
+aggregator:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer-group-id: aggregator-group
+    poll-timeout: 1s
+    shutdown-timeout: 30s
+    consumer-properties:
+      auto.offset.reset: earliest
+      max.poll.records: 100
+    producer-properties:
+      acks: all
+      enable.idempotence: true
+    topics:
+      sensors: telemetry.sensors.v1
+      snapshots: telemetry.snapshots.v1
