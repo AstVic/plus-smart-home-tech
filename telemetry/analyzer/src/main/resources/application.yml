@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: analyzer
+  main:
+    web-application-type: none
+  datasource:
+    url: ${ANALYZER_DB_URL:jdbc:postgresql://localhost:5432/telemetry_analyzer}
+    username: ${ANALYZER_DB_USER:dbuser}
+    password: ${ANALYZER_DB_PASSWORD:12345}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
+  sql:
+    init:
+      mode: always
+
+analyzer:
+  kafka:
+    bootstrap-servers: localhost:9092
+    poll-timeout: 1s
+    shutdown-timeout: 30s
+    hub-events:
+      topic: telemetry.hubs.v1
+      group-id: analyzer-hub-events
+      properties:
+        auto.offset.reset: earliest
+        max.poll.records: 100
+    snapshots:
+      topic: telemetry.snapshots.v1
+      group-id: analyzer-snapshots
+      properties:
+        auto.offset.reset: earliest
+        max.poll.records: 1
+  hub-router:
+    request-timeout: 5s
+
+grpc:
+  client:
+    hub-router:
+      address: 'static://localhost:59090'
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
