@@ -15,12 +15,12 @@ import java.util.Properties;
 
 @Configuration
 public class KafkaConfig {
-    @Bean(destroyMethod = "")
+    @Bean
     public Consumer<String, HubEventAvro> hubEventConsumer(KafkaProperties properties) {
         return new KafkaConsumer<>(consumerProperties(properties, properties.getHubEvents(), HubEventDeserializer.class));
     }
 
-    @Bean(destroyMethod = "")
+    @Bean
     public Consumer<String, SensorsSnapshotAvro> snapshotConsumer(KafkaProperties properties) {
         return new KafkaConsumer<>(consumerProperties(properties, properties.getSnapshots(), SensorsSnapshotDeserializer.class));
     }

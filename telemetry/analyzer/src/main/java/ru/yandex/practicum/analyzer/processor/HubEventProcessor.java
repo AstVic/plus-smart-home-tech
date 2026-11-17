@@ -1,6 +1,5 @@
 package ru.yandex.practicum.analyzer.processor;
 
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -76,11 +75,9 @@ public class HubEventProcessor implements Runnable {
         }
     }
 
-    @PreDestroy
     public void stop() {
-        if (running.compareAndSet(true, false)) {
-            consumer.wakeup();
-        }
+        running.set(false);
+        consumer.wakeup();
         if (processingThread != null && processingThread != Thread.currentThread()) {
             try {
                 if (!stopped.await(properties.getShutdownTimeout().toMillis(), TimeUnit.MILLISECONDS)) {
