@@ -10,23 +10,11 @@ import ru.yandex.practicum.aggregator.service.AggregationStarter;
 @ConfigurationPropertiesScan
 public class AggregatorApplication {
     public static void main(String[] args) {
-        SpringApplication application = new SpringApplication(AggregatorApplication.class);
-        application.setRegisterShutdownHook(false);
-        try (ConfigurableApplicationContext context = application.run(args)) {
-            AggregationStarter aggregationStarter = context.getBean(AggregationStarter.class);
-            Thread mainThread = Thread.currentThread();
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                aggregationStarter.stop();
-                try {
-                    mainThread.join();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    context.close();
-                }
-            }, "AggregatorShutdownHook"));
+        // Запускаем Spring Boot и получаем настроенный контекст приложения.
+        ConfigurableApplicationContext context = SpringApplication.run(AggregatorApplication.class, args);
 
-            aggregationStarter.start();
-        }
+        // Получаем бин AggregationStarter и запускаем основную логику сервиса.
+        AggregationStarter aggregator = context.getBean(AggregationStarter.class);
+        aggregator.start();
     }
 }
