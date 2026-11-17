@@ -17,10 +17,8 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -35,12 +33,9 @@ public class AggregationStarter {
     private final KafkaProperties kafkaProperties;
     private final SnapshotService snapshotService;
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private final CountDownLatch stopped = new CountDownLatch(1);
-    private volatile Thread processingThread;
 
     public void start() {
         boolean commitPending = false;
-        processingThread = Thread.currentThread();
         running.set(true);
 
         try {
@@ -73,11 +68,7 @@ public class AggregationStarter {
             throw new IllegalStateException("Ошибка во время обработки событий от датчиков", e);
         } finally {
             running.set(false);
-            try {
-                closeResources(commitPending);
-            } finally {
-                stopped.countDown();
-            }
+            closeResources(commitPending);
         }
     }
 
@@ -85,16 +76,6 @@ public class AggregationStarter {
     public void stop() {
         if (running.compareAndSet(true, false)) {
             consumer.wakeup();
-        }
-        if (processingThread != null && processingThread != Thread.currentThread()) {
-            try {
-                if (!stopped.await(kafkaProperties.getShutdownTimeout().toMillis(), TimeUnit.MILLISECONDS)) {
-                    log.warn("Не удалось завершить агрегацию за {}", kafkaProperties.getShutdownTimeout());
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("Ожидание завершения агрегации прервано", e);
-            }
         }
     }
 
@@ -105,13 +86,10 @@ public class AggregationStarter {
                 consumer.commitSync();
             }
         } finally {
-            try {
-                log.info("Закрываем консьюмер");
-                consumer.close();
-            } finally {
-                log.info("Закрываем продюсер");
-                producer.close();
-            }
+            log.info("Закрываем консьюмер");
+            consumer.close();
+            log.info("Закрываем продюсер");
+            producer.close();
         }
     }
 
