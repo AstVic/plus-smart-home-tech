@@ -11,10 +11,24 @@ import ru.yandex.practicum.analyzer.processor.SnapshotProcessor;
 @ConfigurationPropertiesScan
 public class Analyzer {
     public static void main(String[] args) {
-        ConfigurableApplicationContext context = SpringApplication.run(Analyzer.class, args);
+        SpringApplication application = new SpringApplication(Analyzer.class);
+        application.setRegisterShutdownHook(false);
+        ConfigurableApplicationContext context = application.run(args);
 
         final HubEventProcessor hubEventProcessor = context.getBean(HubEventProcessor.class);
         SnapshotProcessor snapshotProcessor = context.getBean(SnapshotProcessor.class);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                snapshotProcessor.stop();
+            } finally {
+                try {
+                    hubEventProcessor.stop();
+                } finally {
+                    context.close();
+                }
+            }
+        }, "AnalyzerShutdownHook"));
 
         Thread hubEventsThread = new Thread(hubEventProcessor);
         hubEventsThread.setName("HubEventHandlerThread");

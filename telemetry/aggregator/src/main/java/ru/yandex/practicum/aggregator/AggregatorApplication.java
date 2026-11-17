@@ -10,8 +10,23 @@ import ru.yandex.practicum.aggregator.service.AggregationStarter;
 @ConfigurationPropertiesScan
 public class AggregatorApplication {
     public static void main(String[] args) {
-        try (ConfigurableApplicationContext context = SpringApplication.run(AggregatorApplication.class, args)) {
-            context.getBean(AggregationStarter.class).start();
+        SpringApplication application = new SpringApplication(AggregatorApplication.class);
+        application.setRegisterShutdownHook(false);
+        try (ConfigurableApplicationContext context = application.run(args)) {
+            AggregationStarter aggregationStarter = context.getBean(AggregationStarter.class);
+            Thread mainThread = Thread.currentThread();
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                aggregationStarter.stop();
+                try {
+                    mainThread.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    context.close();
+                }
+            }, "AggregatorShutdownHook"));
+
+            aggregationStarter.start();
         }
     }
 }

@@ -1,6 +1,5 @@
 package ru.yandex.practicum.aggregator.service;
 
-import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -32,11 +31,10 @@ public class AggregationStarter {
     private final Producer<String, SensorsSnapshotAvro> producer;
     private final KafkaProperties kafkaProperties;
     private final SnapshotService snapshotService;
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
     public void start() {
         boolean commitPending = false;
-        running.set(true);
 
         try {
             String sensorTopic = getRequiredTopic(SENSOR_TOPIC_KEY);
@@ -72,11 +70,9 @@ public class AggregationStarter {
         }
     }
 
-    @PreDestroy
     public void stop() {
-        if (running.compareAndSet(true, false)) {
-            consumer.wakeup();
-        }
+        running.set(false);
+        consumer.wakeup();
     }
 
     private void closeResources(boolean commitPending) {
