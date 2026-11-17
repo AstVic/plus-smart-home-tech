@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
@@ -31,17 +30,17 @@ public class AggregationStarter {
     private final Producer<String, SensorsSnapshotAvro> producer;
     private final KafkaProperties kafkaProperties;
     private final SnapshotService snapshotService;
-    private final AtomicBoolean running = new AtomicBoolean(true);
 
     public void start() {
         boolean commitPending = false;
 
         try {
+            Runtime.getRuntime().addShutdownHook(new Thread(consumer::wakeup));
             String sensorTopic = getRequiredTopic(SENSOR_TOPIC_KEY);
             consumer.subscribe(List.of(sensorTopic));
             log.info("Aggregator подписан на топик {}", sensorTopic);
 
-            while (running.get()) {
+            while (true) {
                 ConsumerRecords<String, SensorEventAvro> records = consumer.poll(kafkaProperties.getPollTimeout());
                 if (records.isEmpty()) {
                     continue;
@@ -58,34 +57,22 @@ public class AggregationStarter {
                 consumer.commitSync();
                 commitPending = false;
             }
-        } catch (WakeupException e) {
-            if (running.get()) {
-                throw e;
-            }
+        } catch (WakeupException ignored) {
+            // Закрываем консьюмер и продюсер в блоке finally.
         } catch (Exception e) {
-            throw new IllegalStateException("Ошибка во время обработки событий от датчиков", e);
+            log.error("Ошибка во время обработки событий от датчиков", e);
         } finally {
-            running.set(false);
-            closeResources(commitPending);
-        }
-    }
-
-    public void stop() {
-        running.set(false);
-        consumer.wakeup();
-    }
-
-    private void closeResources(boolean commitPending) {
-        try {
-            producer.flush();
-            if (commitPending) {
-                consumer.commitSync();
+            try {
+                producer.flush();
+                if (commitPending) {
+                    consumer.commitSync();
+                }
+            } finally {
+                log.info("Закрываем консьюмер");
+                consumer.close();
+                log.info("Закрываем продюсер");
+                producer.close();
             }
-        } finally {
-            log.info("Закрываем консьюмер");
-            consumer.close();
-            log.info("Закрываем продюсер");
-            producer.close();
         }
     }
 
